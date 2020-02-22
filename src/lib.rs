@@ -1,5 +1,6 @@
 pub mod poisson;
 pub mod triangle;
+mod calc;
 
 pub trait LinearFem<Elememt> {
     fn create_Ke(elem:&Elememt) -> ndarray::Array2<f32>;
