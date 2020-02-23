@@ -8,6 +8,9 @@ impl Vector2d{
     pub(crate) fn dot(&self,other:&Self)->f32{
         self[0]*other[0]+self[1]*other[1]
     }
+    pub(crate) fn square_sum(&self)->f32{
+        self[0]*self[0]+self[1]*self[1]
+    }
 }
 
 use core::ops::*;
