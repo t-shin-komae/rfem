@@ -13,6 +13,14 @@ impl Triangle {
             ids:ids
         }
     }
+    #[inline]
+    pub fn get_node(&self,index:usize) -> [f32;2]{
+        self.nodes[index]
+    }
+    #[inline]
+    pub fn get_id(&self,index:usize) -> usize{
+        self.ids[index]
+    }
     pub fn physical_quantity(&self, x: f32, y: f32, physics: &[f32; 3]) -> f32 {
         let [xi,eta] = self.local_coord(x,y);
         Self::phi(xi,eta,physics)
