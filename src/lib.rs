@@ -1,12 +1,12 @@
+use ndarray::{Array1,Array2};
 pub mod poisson;
 pub mod triangle;
 mod calc;
 
-pub trait LinearFem<Elememt> {
-    fn create_Ke(elem:&Elememt) -> ndarray::Array2<f32>;
-    fn create_fe(elem:&Elememt, f_i: &[f32]) -> ndarray::Array1<f32>;
-    fn patch_to_K(elem:&Elememt, Ke: &ndarray::Array2<f32>, K: &mut ndarray::Array2<f32>);
-    fn patch_to_fe(elem:&Elememt, fe: &ndarray::Array1<f32>, f: &mut ndarray::Array1<f32>);
+pub trait LinearFemElement<KE=Array2<f32>,FE=Array1<f32>,K=Array2<f32>,F=Array1<f32>> {
+    fn create_Ke(&self) -> KE;
+    fn create_fe(&self) -> FE;
+    fn patch_to_K(&self, Ke: &KE, K: &mut K);
+    fn patch_to_fe(&self, fe: &FE, f: &mut F);
 }
 
-pub struct ElasticEquation;
