@@ -1,7 +1,9 @@
 use ndarray::{Array1,Array2};
 pub mod poisson;
 pub mod triangle;
+pub mod line;
 mod calc;
+pub mod io;
 
 pub trait LinearFemElement<KE=Array2<f32>,FE=Array1<f32>,K=Array2<f32>,F=Array1<f32>> {
     fn create_Ke(&self) -> KE;
@@ -10,3 +12,10 @@ pub trait LinearFemElement<KE=Array2<f32>,FE=Array1<f32>,K=Array2<f32>,F=Array1<
     fn patch_to_fe(&self, fe: &FE, f: &mut F);
 }
 
+pub fn dirichlet(K:&mut ndarray::Array2<f32>,f:&mut ndarray::Array1<f32>,nth:usize,val:f32){
+    *f -= &(val*(&K.column(nth)));
+    f[nth] = val;
+    K.column_mut(nth).fill(0.) ;
+    K.row_mut(nth).fill(0.);
+    K[[nth,nth]] = 1.0;
+}

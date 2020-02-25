@@ -1,20 +1,23 @@
 use crate::triangle::{Triangle, TriangleQuad};
 use crate::LinearFemElement;
-pub struct PoissonTriangleElement{
-    pub triangle:Triangle,
-    pub f_i:[f32;3]
+pub struct PoissonTriangleElement {
+    pub triangle: Triangle,
+    pub f_i: [f32; 3],
 }
 
-impl PoissonTriangleElement{
-    pub fn new(tri:Triangle,f_i:&[f32;3])->Self{
-        Self{triangle:tri,f_i:*f_i}
+impl PoissonTriangleElement {
+    pub fn new(tri: Triangle, f_i: &[f32; 3]) -> Self {
+        Self {
+            triangle: tri,
+            f_i: *f_i,
+        }
     }
-    pub fn from_all_f(tri:Triangle,f:&[f32])-> Self{
+    pub fn from_all_f(tri: Triangle, f: &[f32]) -> Self {
         let ids = tri.get_all_ids();
-        let f_i = [f[ids[0]],f[ids[1]],f[ids[2]]];
-        Self{
-            triangle:tri,
-            f_i : f_i
+        let f_i = [f[ids[0]], f[ids[1]], f[ids[2]]];
+        Self {
+            triangle: tri,
+            f_i: f_i,
         }
     }
 }
@@ -56,5 +59,69 @@ impl LinearFemElement for PoissonTriangleElement {
             let id_i = self.triangle.get_id(i);
             f[id_i] += f_i;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::io::gmsh::process_2d_trianglation_file;
+    use crate::dirichlet;
+    use ndarray_linalg::Solve;
+    use ndarray::prelude::*;
+    use ndarray::{Array1, Array2};
+    #[test]
+    fn test_poisson() {
+        let (physicalnames, points, lines, triangles) =
+            process_2d_trianglation_file("triangulation.msh").unwrap();
+        let f_at_points = vec![0.; points.len()];
+        let mut f_vec = Array1::<f32>::zeros(points.len().f());
+        let mut K = Array2::<f32>::zeros((points.len(), points.len()).f());
+        let poisson_elements_iter = triangles
+            .into_iter()
+            .map(|tri| PoissonTriangleElement::from_all_f(tri.0, &f_at_points));
+        for po in poisson_elements_iter {
+            let ke: Array2<f32> = po.create_Ke();
+            let fe: Array1<f32> = po.create_fe();
+            po.patch_to_K(&ke, &mut K);
+            po.patch_to_fe(&fe, &mut f_vec);
+        }
+        for line_with_tags in lines.iter() {
+            let (line, tags) = line_with_tags;
+            if physicalnames[tags[0] - 1].name == "ZERO" {
+                dirichlet(&mut K, &mut f_vec, line.ids[0], 0.);
+            } else if physicalnames[tags[0] - 1].name == "HIGH" {
+                dirichlet(
+                    &mut K,
+                    &mut f_vec,
+                    line.ids[0],
+                    (1. - line.nodes[0][0]) * line.nodes[0][0],
+                );
+            } else if physicalnames[tags[0] - 1].name == "LOW" {
+                dirichlet(
+                    &mut K,
+                    &mut f_vec,
+                    line.ids[0],
+                    -(1. - line.nodes[0][0]) * line.nodes[0][0],
+                );
+            }
+        }
+        let u = K.solve_into(f_vec).unwrap();
+        for (u, point) in u.iter().zip(points.iter()) {
+            let exact_sol = exact_solution(point[0],point[1]);
+            assert!(exact_sol-u < 1e-1);
+        }
+    }
+
+    use std::f64::consts::PI;
+    fn exact_solution(x:f32,y:f32) -> f32{
+        let x = x as f64;
+        let y = y as f64;
+        let mut sol = 0.;
+        for m in (1..100).step_by(2){
+            let m = m as f64;
+            sol += -2.0 * f64::sinh(m *PI*(y-0.5))*f64::sin(m*PI*x)/(m.powf(3.)*f64::sinh(m*PI/2.));
+        }
+        (4.*sol/(PI.powf(3.))) as f32
     }
 }

@@ -8,3 +8,5 @@ edition = "2018"
 
 [dependencies]
 ndarray = "0.13"
+ndarray-linalg={ version = "0.12", features=["intel-mkl"] }
+gmsh-v2-parser = {git = "https://github.com/t-shin-komae/rust-msh-v2-parser"}
