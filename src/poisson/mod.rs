@@ -48,7 +48,7 @@ impl LinearFemElement for PoissonTriangleElement {
         for ((i, j), k_ij) in Ke.indexed_iter() {
             let id_i = self.triangle.get_id(i);
             let id_j = self.triangle.get_id(j);
-            K[[id_j, id_j]] += k_ij;
+            K[[id_i, id_j]] += k_ij;
         }
     }
     fn patch_to_fe(&self, fe: &Array1<f32>, f: &mut Array1<f32>) {
