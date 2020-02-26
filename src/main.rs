@@ -1,3 +1,4 @@
+extern crate openblas_src;
 use ndarray::prelude::*;
 use rfem::io::gmsh::process_2d_trianglation_file;
 use rfem::poisson::PoissonTriangleElement;
