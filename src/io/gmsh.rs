@@ -21,10 +21,10 @@ pub fn process_2d_trianglation_file<P:AsRef<Path>>(filepath:P) -> Result<(Vec<Ph
 }
 
 pub type Tags = [usize;3];
-type Point2D = [f32;2];
+type Point2D = [f64;2];
 
 fn convert_node_to_point(node:Node) -> Point2D {
-    [node.coord[0] as f32,node.coord[1] as f32]
+    [node.coord[0],node.coord[1]]
 }
 
 fn extract_triangle2d(points:&[Point2D],elements:&[Element]) -> Vec<(Triangle,Tags)>{
