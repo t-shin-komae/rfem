@@ -11,6 +11,10 @@ pub trait LinearFemElement<KE=Array2<f64>,FE=Array1<f64>,K=Array2<f64>,F=Array1<
     fn patch_to_K(&self, Ke: &KE, K: &mut K);
     fn patch_to_fe(&self, fe: &FE, f: &mut F);
 }
+pub trait LinearFemBoundaryElement<QE=Array1<f64>,Q=Array1<f64>> {
+    fn create_qe(&self) -> QE;
+    fn patch_to_qe(&self, qe: &QE, q: &mut Q);
+}
 
 pub fn dirichlet(K:&mut ndarray::Array2<f64>,f:&mut ndarray::Array1<f64>,nth:usize,val:f64){
     *f -= &(val*(&K.column(nth)));

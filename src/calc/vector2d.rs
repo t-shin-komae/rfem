@@ -11,6 +11,9 @@ impl Vector2d{
     pub(crate) fn square_sum(&self)->f64{
         self[0]*self[0]+self[1]*self[1]
     }
+    pub(crate) fn len(&self)->f64{
+        f64::sqrt(self[0]*self[0]+self[1]*self[1])
+    }
 }
 
 use core::ops::*;
