@@ -29,6 +29,23 @@ impl Triangle {
         let [xi,eta] = self.local_coord(x,y);
         Self::phi(xi,eta,physics)
     }
+    // The differencial is constant in a one order triangle element
+    pub fn physical_quantity_diff_x(&self, x: f64, y: f64, physics: &[f64; 3]) -> f64 {
+        let [xi,eta] = self.local_coord(x,y);
+        let [xi_delta,eta_delta] = self.local_coord(x+0.1,y);
+        (Self::phi(xi_delta,eta_delta,physics)-Self::phi(xi,eta,physics))/0.1
+    }
+    pub fn physical_quantity_diff_y(&self, x: f64, y: f64, physics: &[f64; 3]) -> f64 {
+        let [xi,eta] = self.local_coord(x,y);
+        let [xi_delta,eta_delta] = self.local_coord(x,y+0.1);
+        (Self::phi(xi_delta,eta_delta,physics)-Self::phi(xi,eta,physics))/0.1
+    }
+    pub fn physical_diff_x_from_ids(&self, x: f64, y: f64, physics: &[f64]) -> f64 {
+        self.physical_quantity_diff_x(x,y,&[physics[self.ids[0]],physics[self.ids[1]],physics[self.ids[2]]])
+    }
+    pub fn physical_diff_y_from_ids(&self, x: f64, y: f64, physics: &[f64]) -> f64 {
+        self.physical_quantity_diff_y(x,y,&[physics[self.ids[0]],physics[self.ids[1]],physics[self.ids[2]]])
+    }
     pub fn physical_from_ids(&self, x: f64, y: f64, physics: &[f64]) -> f64 {
         let [xi,eta] = self.local_coord(x,y);
         Self::phi(xi,eta,&[physics[self.ids[0]],physics[self.ids[1]],physics[self.ids[2]]])
