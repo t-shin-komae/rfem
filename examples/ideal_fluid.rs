@@ -26,8 +26,8 @@ fn main() {
     }
     for line_with_tags in lines.iter() {
         let (line, tags) = line_with_tags;
-        let [x_1,y_1] = line.nodes[0];
-        let [x_2,y_2] = line.nodes[1];
+        let [x_1,y_1] = line.get_node(0);
+        let [x_2,y_2] = line.get_node(1);
         if physicalnames[tags[0] - 1].name == "WALL" {
             let p_line = PoissonLineBoundaryElement::new(&line,&[0.,0.]);
             let qe = p_line.create_qe();
@@ -42,8 +42,8 @@ fn main() {
     for line_with_tags in lines.iter(){
         let (line,tags) = line_with_tags;
         if physicalnames[tags[0]-1].name == "OUT"{
-            dirichlet(&mut K, &mut f_vec, line.ids[0], 0.);
-            dirichlet(&mut K, &mut f_vec, line.ids[1], 0.);
+            dirichlet(&mut K, &mut f_vec, line.get_id(0), 0.);
+            dirichlet(&mut K, &mut f_vec, line.get_id(1), 0.);
         }
     }
     println!("start solve");

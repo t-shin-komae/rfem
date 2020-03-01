@@ -25,8 +25,8 @@ fn main() {
     }
     for line_with_tags in lines.iter(){
         let (line,tags) = line_with_tags;
-        let [x,y] = line.nodes[0];
-        dirichlet(&mut K, &mut f_vec, line.ids[0], 0.);
+        let [x,y] = line.get_node(0);
+        dirichlet(&mut K, &mut f_vec, line.get_id(0), 0.);
     }
     println!("start solve");
     let u = K.solve_into(f_vec).unwrap();

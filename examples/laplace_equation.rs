@@ -24,13 +24,13 @@ fn main() {
     }
     for line_with_tags in lines.iter(){
         let (line,tags) = line_with_tags;
-        let [x,y] = line.nodes[0];
+        let [x,y] = line.get_node(0);
         if physicalnames[tags[0]-1].name == "ZERO"{
-            dirichlet(&mut K, &mut f_vec, line.ids[0], 0.);
+            dirichlet(&mut K, &mut f_vec, line.get_id(0), 0.);
         }else if physicalnames[tags[0]-1].name == "HIGH"{
-            dirichlet(&mut K, &mut f_vec, line.ids[0], (1.-x)*x);
+            dirichlet(&mut K, &mut f_vec, line.get_id(0), (1.-x)*x);
         }else if physicalnames[tags[0]-1].name == "LOW"{
-            dirichlet(&mut K, &mut f_vec, line.ids[0], -(1.-x)*x);
+            dirichlet(&mut K, &mut f_vec, line.get_id(0), -(1.-x)*x);
         }
     }
     println!("start solve");

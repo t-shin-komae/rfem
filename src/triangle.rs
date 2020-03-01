@@ -1,55 +1,105 @@
+/// Triangle element type in 2D plane.
+/// 
+/// This structure stores three *nodes*(vertexes) and their *ids*.
+/// The *ids* are *zero based numbering*.
 pub struct Triangle {
     nodes: [[f64; 2]; 3],
     ids: [usize; 3],
 }
 
 impl Triangle {
+    /// Construct a new `Triangle` element from 3 nodes and their correspoinding ids.
     pub fn new(nodes: [[f64; 2]; 3], ids: [usize; 3]) -> Self {
         Self{nodes,ids}
     }
-    pub fn from_ids(ids: [usize; 3], points: &[[f64; 2]]) -> Self {
+    /// Construct a new `Triangle` element from 3 ids and nodes slice.
+    /// This methods take 3 nodes from the nodes slice.
+    /// # Example
+    /// ```
+    /// let nodes = [
+    ///     [0.,0.],
+    ///     [1.,0.],
+    ///     [0.,1.],
+    ///     [1.,1.],
+    ///     [2.,1.],
+    ///     [2.,2.],
+    /// ];
+    /// // This triangle has these nodes, [1.,0.],[0.,1.],[1.,0.]
+    /// let triangle = Triangle::from_ids([2,3,1],&nodes);
+    /// ```
+    /// # Panic
+    /// if nodes.len() < max(ids) then panic
+    /// ```
+    /// let nodes = [
+    ///     [0.,0.],
+    ///     [1.,0.],
+    ///     [0.,1.],
+    ///     [1.,1.],
+    ///     [2.,1.],
+    ///     [2.,2.],
+    /// ];
+    /// // panic because the nodes has 6 element but designate 6th index, so internally, array out of bounds occurs
+    /// let triangle = Triangle::from_ids([2,6,1],&nodes);
+    /// ```
+    pub fn from_ids(ids: [usize; 3], nodes: &[[f64; 2]]) -> Self {
         Self{
-            nodes:[points[ids[0]],points[ids[1]],points[ids[2]]],
+            nodes:[nodes[ids[0]],nodes[ids[1]],nodes[ids[2]]],
             ids:ids
         }
     }
+    /// Get node in index th.
     #[inline]
     pub fn get_node(&self,index:usize) -> [f64;2]{
         self.nodes[index]
     }
+    /// Get id in index th.
     #[inline]
     pub fn get_id(&self,index:usize) -> usize{
         self.ids[index]
     }
+    /// Get all ids in triangle.
     #[inline]
     pub fn get_all_ids(&self) -> [usize;3]{
         self.ids
     }
+    /// Calculate physical quantity in triangle.
+    /// `x` and `y` should be the point in triangle.
+    /// `physics` is a physical quantity at each nodes.
     pub fn physical_quantity(&self, x: f64, y: f64, physics: &[f64; 3]) -> f64 {
         let [xi,eta] = self.local_coord(x,y);
         Self::phi(xi,eta,physics)
     }
-    // The differencial is constant in a one order triangle element
+    /// Calculate the partial derivative of physical quantity with respect to x in triangle.
+    /// `x` and `y` should be the point in triangle.
+    /// `physics` is a physical quantity at each nodes.
     pub fn physical_quantity_diff_x(&self, x: f64, y: f64, physics: &[f64; 3]) -> f64 {
+        // The differencial is constant in a one order triangle element
         let [xi,eta] = self.local_coord(x,y);
         let [xi_delta,eta_delta] = self.local_coord(x+0.1,y);
         (Self::phi(xi_delta,eta_delta,physics)-Self::phi(xi,eta,physics))/0.1
     }
+    /// Calculate the partial derivative of physical quantity with respect to y in triangle.
+    /// `x` and `y` should be the point in triangle.
+    /// `physics` is a physical quantity at each nodes.
     pub fn physical_quantity_diff_y(&self, x: f64, y: f64, physics: &[f64; 3]) -> f64 {
         let [xi,eta] = self.local_coord(x,y);
         let [xi_delta,eta_delta] = self.local_coord(x,y+0.1);
         (Self::phi(xi_delta,eta_delta,physics)-Self::phi(xi,eta,physics))/0.1
     }
+    /// Convenient wrapper for `physical_quantity_diff_x`. see also `from_ids`
     pub fn physical_diff_x_from_ids(&self, x: f64, y: f64, physics: &[f64]) -> f64 {
         self.physical_quantity_diff_x(x,y,&[physics[self.ids[0]],physics[self.ids[1]],physics[self.ids[2]]])
     }
+    /// Convenient wrapper for `physical_quantity_diff_y`. see also `from_ids`
     pub fn physical_diff_y_from_ids(&self, x: f64, y: f64, physics: &[f64]) -> f64 {
         self.physical_quantity_diff_y(x,y,&[physics[self.ids[0]],physics[self.ids[1]],physics[self.ids[2]]])
     }
+    /// Convenient wrapper for `physical_quantity`. see also `from_ids`
     pub fn physical_from_ids(&self, x: f64, y: f64, physics: &[f64]) -> f64 {
         let [xi,eta] = self.local_coord(x,y);
         Self::phi(xi,eta,&[physics[self.ids[0]],physics[self.ids[1]],physics[self.ids[2]]])
     }
+    /// Calculate the local coordinate of the designated point `(x,y)`
     pub fn local_coord(&self, x: f64, y: f64) -> [f64; 2] {
         // x_e = xi*(p2-p1) + eta*(p3-p1)
         // (xi,eta) = J^-1 x_e
@@ -63,6 +113,7 @@ impl Triangle {
         let eta = 1./det * Vector2d([-v1[1],v1[0]]).dot(&x_e);
         [xi,eta]
     }
+    /// Check if or if not the `point` is included in this triangle.
     pub fn is_include(&self, point: &[f64; 2]) -> bool {
         let [xi,eta] = self.local_coord(point[0],point[1]);
         0.<=xi && 0.<=eta && xi+eta <= 1.00001
