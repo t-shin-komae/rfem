@@ -9,5 +9,7 @@ edition = "2018"
 [dependencies]
 ndarray = "0.13"
 ndarray-linalg="0.12"
-openblas-src = "0.7"
 gmsh-v2-parser = {git = "https://github.com/t-shin-komae/rust-msh-v2-parser"}
+
+[dev-dependencies]
+openblas-src = "0.7"
