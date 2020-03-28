@@ -152,16 +152,51 @@ pub struct TriangleQuad {
 }
 impl TriangleQuad {
     pub fn new(nodes: [[f64; 2]; 6], ids: [usize; 6]) -> Self {
-        unimplemented!();
+        Self{
+            nodes,ids
+        }
     }
     pub fn from_ids(ids: [usize; 6], points: &[[f64; 2]]) -> Self {
-        unimplemented!();
+        let nodes = [
+            points[ids[0]],
+            points[ids[1]],
+            points[ids[2]],
+            points[ids[3]],
+            points[ids[4]],
+            points[ids[5]],
+        ];
+        Self{nodes,ids}
     }
+    /// Get node in index th.
+    #[inline]
+    pub fn get_node(&self,index:usize) -> [f64;2]{
+        self.nodes[index]
+    }
+    /// Get id in index th.
+    #[inline]
+    pub fn get_id(&self,index:usize) -> usize{
+        self.ids[index]
+    }
+    /// Get all ids in triangle.
+    #[inline]
+    pub fn get_all_ids(&self) -> [usize;6]{
+        self.ids
+    }
+    // copy and paste from Triangle::local_coord
     pub fn local_coord(&self, x: f64, y: f64) -> [f64; 2] {
-        unimplemented!();
+        use crate::calc::Vector2d;
+        let nodes = self.nodes;
+        let v1 = Vector2d::start_end(&nodes[0],&nodes[1]); // vector (p2-p1)
+        let v2 = Vector2d::start_end(&nodes[0],&nodes[2]); // vector (p3-p1)
+        let x_e = Vector2d::start_end(&nodes[0],&[x,y]);   // vector (x-p1)
+        let det = v1[0]*v2[1]-v1[1]*v2[0];
+        let xi = 1./det * Vector2d([v2[1],-v2[0]]).dot(&x_e);
+        let eta = 1./det * Vector2d([-v1[1],v1[0]]).dot(&x_e);
+        [xi,eta]
     }
     pub fn physical_quantity(&self, x: f64, y: f64, physics: [f64; 6]) -> f64 {
-        unimplemented!();
+        let [xi,eta] = self.local_coord(x,y);
+        Self::phi(xi,eta,physics)
     }
     pub fn physical_from_ids(&self, x: f64, y: f64, physics: &[f64]) -> f64 {
         unimplemented!();

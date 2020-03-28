@@ -38,6 +38,36 @@ impl<'a> PoissonTriangleElement<'a> {
         }
     }
 }
+
+pub struct PoissonTriangleQuadElement<'a>{
+    /// refrence to a triangle element
+    pub triangle: &'a TriangleQuad,
+    /// the `f` value at each nodes
+    pub f_i: [f64; 6],
+}
+impl<'a> PoissonTriangleQuadElement<'a> {
+    /// Construct a new PoissonTriangleElement.
+    /// `f_i` is a value of f at the triangle's nodes.
+    pub fn new(tri: &'a TriangleQuad, f_i: &[f64; 6]) -> Self {
+        Self {
+            triangle: tri,
+            f_i: *f_i,
+        }
+    }
+    /// Construct a new PoissonTriangleElement from all `f` values at all nodes.
+    pub fn from_all_f(tri: &'a TriangleQuad, f: &[f64]) -> Self {
+        let ids = tri.get_all_ids();
+        let f_i = [
+            f[ids[0]], f[ids[1]], f[ids[2]],
+            f[ids[3]], f[ids[4]], f[ids[5]],
+        ];
+        Self {
+            triangle: tri,
+            f_i: f_i,
+        }
+    }
+}
+
 use crate::calc::Vector2d;
 use ndarray::{Array1, Array2};
 /// Let \\(\Omega_e\\) be a triangle, \\( \phi_i ~~~(i=1,2,3)\\) be a interpolation function, and \\(J_e\\) be a jacobi matrix for the transformation from \\(x,y\\) coordinate to \\(\xi,\eta\\) coordinate(local coordinate).
@@ -95,6 +125,73 @@ impl<'a> LinearFemElement for PoissonTriangleElement<'a> {
     /// $$
     fn create_fe(&self) -> Array1<f64> {
         let matrix = ndarray::arr2(&[[2., 1., 1.], [1., 2., 1.], [1., 1., 2.]]) / 24.;
+        let edge_vec1 = Vector2d::start_end(&self.triangle.get_node(0), &self.triangle.get_node(1));
+        let edge_vec2 = Vector2d::start_end(&self.triangle.get_node(0), &self.triangle.get_node(2));
+        let J = [&edge_vec1, &edge_vec2];
+        let det = J[0][0] * J[1][1] - J[0][1] * J[1][0];
+        let f_vec = ndarray::arr1(&self.f_i) * det;
+        f_vec.dot(&matrix)
+    }
+    fn patch_to_K(&self, Ke: &Array2<f64>, K: &mut Array2<f64>) {
+        for ((i, j), k_ij) in Ke.indexed_iter() {
+            let id_i = self.triangle.get_id(i);
+            let id_j = self.triangle.get_id(j);
+            K[[id_i, id_j]] += k_ij;
+        }
+    }
+    fn patch_to_fe(&self, fe: &Array1<f64>, f: &mut Array1<f64>) {
+        for (i, f_i) in fe.indexed_iter() {
+            let id_i = self.triangle.get_id(i);
+            f[id_i] += f_i;
+        }
+    }
+}
+impl<'a> LinearFemElement for PoissonTriangleQuadElement<'a> {
+    fn create_Ke(&self) -> Array2<f64> {
+        let xi_xi = ndarray::arr2(&[
+            [1./2.,1./6.,0.,-2./3.,0.,0.],
+            [1./6.,1./2.,0.,-2./3.,0.,0.],
+            [0.,0.,0.,0.,0.,0.],
+            [-2./3.,-2./3.,0.,4./3.,0.,0.],
+            [0.,0.,0.,0.,4./3.,-4./3.],
+            [0.,0.,0.,0.,-4./3.,4./3.]]
+        );
+        let xi_eta_eta_xi = ndarray::arr2(&[
+            [1./2.,0.,1./6.,0.,0.,-2./3.],
+            [1./6.,0.,-1./6.,-2./3.,2./3.,0.],
+            [0.,0.,0.,0.,0.,0.],
+            [-2./3.,0.,0.,2./3.,-2./3.,2./3.],
+            [0.,0.,2./3.,-2./3.,2./3.,-2./3.],
+            [0.,0.,-2./3.,2./3.,-2./3.,2./3.],
+        ]);
+        let eta_eta = ndarray::arr2(&[
+            [1./2.,0.,1./6.,0.,0.,-2./3.],
+            [0.,0.,0.,0.,0.,0.],
+            [1./6.,0.,1./2.,0.,0.,-2./3.],
+            [0.,0.,0.,4./3.,-4./3.,0.],
+            [0.,0.,0.,-4./3.,4./3.,0.],
+            [-2./3.,0.,-2./3.,0.,0.,4./3.]
+        ]);
+        // TODO fix this verbose code
+        // ((a,b),(c,d))J^-1 (J^-1)^T |J|
+        let edge_vec1 = Vector2d::start_end(&self.triangle.get_node(0), &self.triangle.get_node(1));
+        let edge_vec2 = Vector2d::start_end(&self.triangle.get_node(0), &self.triangle.get_node(2));
+        let J = [&edge_vec1, &edge_vec2];
+        let det = J[0][0] * J[1][1] - J[0][1] * J[1][0];
+        let a = edge_vec2.square_sum() / det;
+        let b = - edge_vec1.dot(&edge_vec2) / det;
+        let d = edge_vec1.square_sum() / det;
+        a * xi_xi + b * xi_eta_eta_xi + d * eta_eta
+    }
+    fn create_fe(&self) -> Array1<f64> {
+        let matrix = ndarray::arr2(&[
+            [6.,-1.,-1.,0.,-4.,0.],
+            [-1.,6.,-1.,0.,0.,-4.],
+            [-1.,-1.,6.,-4.,0.,0.],
+            [0.,0.,-4.,32.,16.,16.],
+            [-4.,0.,0.,16.,32.,16.],
+            [0.,-4.,0.,16.,16.,32.]
+        ]) / 360.;
         let edge_vec1 = Vector2d::start_end(&self.triangle.get_node(0), &self.triangle.get_node(1));
         let edge_vec2 = Vector2d::start_end(&self.triangle.get_node(0), &self.triangle.get_node(2));
         let J = [&edge_vec1, &edge_vec2];

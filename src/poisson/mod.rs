@@ -22,82 +22,8 @@ mod tests {
     use ndarray::prelude::*;
     use ndarray::{Array1, Array2};
     use ndarray_linalg::Solve;
-    #[test]
-    fn test_laplace() {
-        fn exact_solution(x: f64, y: f64) -> f64 {
-            x*x - y*y
-        }
-        let (physicalnames, points, lines, triangles) =
-            process_2d_trianglation_file("triangulation.msh").unwrap();
-        let f_at_points = vec![0.; points.len()];
-        let mut f_vec = Array1::<f64>::zeros(points.len().f());
-        let mut K = Array2::<f64>::zeros((points.len(), points.len()).f());
-        let poisson_elements_iter = triangles
-            .iter()
-            .map(|tri| PoissonTriangleElement::from_all_f(&tri.0, &f_at_points));
-        for po in poisson_elements_iter {
-            let ke: Array2<f64> = po.create_Ke();
-            let fe: Array1<f64> = po.create_fe();
-            po.patch_to_K(&ke, &mut K);
-            po.patch_to_fe(&fe, &mut f_vec);
-        }
-        for line_with_tags in lines.iter() {
-            let (line, tags) = line_with_tags;
-            let [x,y] = line.nodes[0];
-            if physicalnames[tags[0] - 1].name == "ZERO" {
-                dirichlet(&mut K, &mut f_vec, line.ids[0], x*x-y*y);
-            } else if physicalnames[tags[0] - 1].name == "HIGH" {
-                dirichlet(
-                    &mut K,
-                    &mut f_vec,
-                    line.ids[0],
-                    x*x-y*y
-                );
-            } else if physicalnames[tags[0] - 1].name == "LOW" {
-                dirichlet(
-                    &mut K,
-                    &mut f_vec,
-                    line.ids[0],
-                    x*x-y*y
-                );
-            }
-        }
-        let u = K.solve_into(f_vec).unwrap();
-        for (u_at_p,point) in u.iter().zip(points.iter()){
-            assert!((u_at_p - exact_solution(point[0], point[1])).abs() < 1e-4 );
-        }
-    }
-
-
-    #[test]
-    fn test_poisson() {
-        fn exact_solution(x: f64, y: f64) -> f64 {
-            x*x - 0.5*y*y
-        }
-        let (_, points, lines, triangles) =
-            process_2d_trianglation_file("triangulation.msh").unwrap();
-        let f_at_points = vec![-1.; points.len()];
-        let mut f_vec = Array1::<f64>::zeros(points.len().f());
-        let mut K = Array2::<f64>::zeros((points.len(), points.len()).f());
-        let poisson_elements_iter = triangles
-            .iter()
-            .map(|tri| PoissonTriangleElement::from_all_f(&tri.0, &f_at_points));
-        for po in poisson_elements_iter {
-            let ke: Array2<f64> = po.create_Ke();
-            let fe: Array1<f64> = po.create_fe();
-            po.patch_to_K(&ke, &mut K);
-            po.patch_to_fe(&fe, &mut f_vec);
-        }
-        for line_with_tags in lines.iter() {
-            let (line, _) = line_with_tags;
-            let [x,y] = line.nodes[0];
-            dirichlet(&mut K, &mut f_vec, line.ids[0], exact_solution(x, y));
-        }
-        let u = K.solve_into(f_vec).unwrap();
-        for (u_at_p,point) in u.iter().zip(points.iter()){
-            assert!((u_at_p - exact_solution(point[0], point[1])).abs() < 1e-4 );
-        }
-    }
+    use crate::LinearFemElement;
+    use crate::LinearFemBoundaryElement;
     #[test]
     fn test_poisson_with_boundary_condition() {
         fn exact_solution(x: f64, y: f64) -> f64 {
@@ -119,8 +45,8 @@ mod tests {
         }
         for line_with_tags in lines.iter() {
             let (line, tags) = line_with_tags;
-            let [x_1,y_1] = line.nodes[0];
-            let [x_2,y_2] = line.nodes[1];
+            let [x_1,y_1] = line.get_node(0);
+            let [x_2,y_2] = line.get_node(1);
             if physicalnames[tags[0] - 1].name == "LOW" {
                 let p_line = PoissonLineBoundaryElement::new(&line,&[-1.,-1.]);
                 let qe = p_line.create_qe();
@@ -129,11 +55,11 @@ mod tests {
         }
         for line_with_tags in lines.iter() {
             let (line, tags) = line_with_tags;
-            let [x_1,y_1] = line.nodes[0];
-            let [x_2,y_2] = line.nodes[1];
+            let [x_1,y_1] = line.get_node(0);
+            let [x_2,y_2] = line.get_node(1);
             if physicalnames[tags[0] - 1].name != "LOW" {
-                dirichlet(&mut K, &mut f_vec, line.ids[0], exact_solution(x_1, y_1));
-                dirichlet(&mut K, &mut f_vec, line.ids[1], exact_solution(x_2, y_2));
+                dirichlet(&mut K, &mut f_vec, line.get_id(0), exact_solution(x_1, y_1));
+                dirichlet(&mut K, &mut f_vec, line.get_id(1), exact_solution(x_2, y_2));
             }
         }
         let u = K.solve_into(f_vec).unwrap();
